@@ -10,15 +10,16 @@ contract RentalAgreement {
     uint public rentalStart;
     uint public rentalEnd;
 
-    bool public isActive;
-    bool public isAccepted;
-    bool public rentPaid;
-    bool public depositPaid;
+    uint public escrowBalance;
 
-    // Events for UI/frontend
+    enum RentalStatus { NotStarted, Active, Cancelled, Completed }
+    RentalStatus public rentalStatus;
+
+    // Events
     event RentalAccepted(address indexed tenant);
     event RentalEnded(address indexed endedBy);
     event PaymentSent(address indexed from, uint amount, string paymentType);
+    event RentalCancelled(address indexed by, uint refund);
 
     constructor(uint _rentAmount, uint _deposit, uint _rentalStart, uint _rentalEnd) {
         landlord = msg.sender;
@@ -26,7 +27,7 @@ contract RentalAgreement {
         deposit = _deposit;
         rentalStart = _rentalStart;
         rentalEnd = _rentalEnd;
-        isActive = true;
+        rentalStatus = RentalStatus.NotStarted;
     }
 
     modifier onlyLandlord() {
@@ -44,34 +45,62 @@ contract RentalAgreement {
         _;
     }
 
+    modifier isActiveRental() {
+        require(rentalStatus == RentalStatus.Active, "Not active");
+        _;
+    }
+
     function acceptRental() external payable {
-        require(!isAccepted, "Already accepted");
+        require(rentalStatus == RentalStatus.NotStarted, "Rental already started or cancelled");
         require(msg.value == rentAmount + deposit, "Incorrect payment");
 
         tenant = msg.sender;
-        isAccepted = true;
-        rentPaid = true;
-        depositPaid = true;
+        escrowBalance += msg.value;
+        rentalStatus = RentalStatus.Active;
 
         emit RentalAccepted(msg.sender);
         emit PaymentSent(msg.sender, msg.value, "Rent + Deposit");
     }
 
-    function endRental(bool landlordApprovesRefund) external onlyParties {
+    function cancelByTenant() external onlyTenant {
+        require(rentalStatus == RentalStatus.NotStarted, "Cannot cancel now");
+
+        rentalStatus = RentalStatus.Cancelled;
+        uint refund = escrowBalance;
+        escrowBalance = 0;
+        payable(tenant).transfer(refund);
+
+        emit RentalCancelled(msg.sender, refund);
+    }
+
+    function cancelByLandlord() external onlyLandlord {
+        require(rentalStatus == RentalStatus.Active, "Rental must be active");
+        require(block.timestamp < rentalStart, "Rental already started");
+
+        rentalStatus = RentalStatus.Cancelled;
+        uint refund = escrowBalance;
+        escrowBalance = 0;
+        payable(tenant).transfer(refund);
+
+        emit RentalCancelled(msg.sender, refund);
+    }
+
+    function endRental(bool landlordApprovesRefund) external onlyParties isActiveRental {
         require(block.timestamp > rentalEnd, "Rental period not ended");
-        require(isActive, "Already ended");
 
-        isActive = false;
+        rentalStatus = RentalStatus.Completed;
 
-        // Logic: return deposit to tenant if landlord agrees, otherwise send it to landlord
+        uint rent = rentAmount;
+        uint depositAmount = deposit;
+        escrowBalance = 0;
+
         if (landlordApprovesRefund) {
-            payable(tenant).transfer(deposit);
+            payable(tenant).transfer(depositAmount);
         } else {
-            payable(landlord).transfer(deposit);
+            rent += depositAmount;
         }
 
-        // Rent always goes to landlord
-        payable(landlord).transfer(rentAmount);
+        payable(landlord).transfer(rent);
 
         emit RentalEnded(msg.sender);
     }

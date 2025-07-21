@@ -1,3 +1,4 @@
+// scripts/deploy.js
 const hre = require("hardhat");
 
 async function main() {
@@ -10,8 +11,8 @@ async function main() {
   const now = Math.floor(Date.now() / 1000);
   const thirtyDays = 30 * 24 * 60 * 60;
 
-  const rentAmount = ethers.parseEther("1.0");
-  const deposit = ethers.parseEther("0.5");
+  const rentAmount = ethers.parseEther("1.0");    // 1 ETH
+  const deposit = ethers.parseEther("0.5");       // 0.5 ETH
 
   const contract = await RentalAgreement.deploy(
     rentAmount,
@@ -20,9 +21,15 @@ async function main() {
     now + thirtyDays
   );
 
-  // ❌ REMOVE this for ethers v6: await contract.deployed();
+  // ethers v6: deployment returns a contract object with .target as address
+  console.log("✅ RentalAgreement deployed to:", contract.target);
 
-  console.log("✅ RentalAgreement deployed to:", contract.target); // use .target instead of .address
+  // OPTIONAL: save to file if needed later
+  const fs = require("fs");
+  fs.writeFileSync(
+    "deployedAddress.json",
+    JSON.stringify({ address: contract.target }, null, 2)
+  );
 }
 
 main().catch((error) => {
