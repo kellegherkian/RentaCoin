@@ -1,18 +1,19 @@
-// src/App.jsx
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Login from "./Login-page/Login";
-import SignIn from "./Login-page/SignIn";
+import { Routes, Route } from 'react-router-dom';
+import Login from './Login-page/Login';
+import SignIn from './Login-page/SignIn';
+import TenantDashboard from './Pages/TenantDashboard';
+import LandlordDashboard from './Pages/LandlordDashboard';
 
 function App() {
   return (
-    <Router>
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <Routes>
-          <Route path="/" element={<Login />} />
-          <Route path="/signin" element={<SignIn />} />
-        </Routes>
-      </div>
-    </Router>
+    <div className="min-h-screen bg-gray-100">
+      <Routes>
+        <Route path="/" element={<Login />} />
+        <Route path="/signin" element={<SignIn />} />
+        <Route path="/tenant-dashboard" element={<TenantDashboard />} />
+        <Route path="/landlord-dashboard" element={<LandlordDashboard />} />
+      </Routes>
+    </div>
   );
 }
 

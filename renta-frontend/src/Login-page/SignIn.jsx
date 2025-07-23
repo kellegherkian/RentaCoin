@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function SignIn() {
   const [formData, setFormData] = useState({
@@ -6,14 +7,31 @@ export default function SignIn() {
     password: "",
   });
 
+  const navigate = useNavigate();
+
   function handleChange(e) {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   }
 
   function handleSubmit(e) {
     e.preventDefault();
-    console.log("Logging in with:", formData);
-    // Add logic to check credentials or navigate
+
+    const storedUser = JSON.parse(localStorage.getItem("rentaUser"));
+
+    if (
+      storedUser &&
+      storedUser.email === formData.email &&
+      storedUser.password === formData.password
+    ) {
+      // Redirect based on stored role
+      if (storedUser.role === "tenant") {
+        navigate("/tenant-dashboard");
+      } else if (storedUser.role === "landlord") {
+        navigate("/landlord-dashboard");
+      }
+    } else {
+      alert("Invalid credentials");
+    }
   }
 
   return (

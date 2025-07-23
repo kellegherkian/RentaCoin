@@ -17,8 +17,18 @@ export default function LoginPage() {
 
   function handleSubmit(e) {
     e.preventDefault();
-    console.log("Submitted Account:", { ...formData, role });
-    // Optionally navigate to connect wallet step next
+
+    const account = { ...formData, role };
+    localStorage.setItem("rentaUser", JSON.stringify(account));
+
+    console.log("Account created and saved to localStorage:", account);
+
+    // Redirect based on role
+    if (role === "tenant") {
+      navigate("/tenant-dashboard");
+    } else {
+      navigate("/landlord-dashboard");
+    }
   }
 
   return (
